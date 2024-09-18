@@ -5,30 +5,36 @@ on:
     types: [submodule_updated]
 
 jobs:
-  update-submodule:
+  update-submodules:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Main Repository
+      # Step 1: Check out the repository with submodules
+      - name: Checkout repository with submodules
         uses: actions/checkout@v3
         with:
-          ref: "${{ github.event.client_payload.submodule_branch }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          submodules: recursive
-          persist-credentials: false  # Important for security
+          submodules: recursive  # Fetch all submodules recursively
 
+      # Step 2: Set up Git user for committing changes
       - name: Set up Git user
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Update Submodules to Latest Commit on Default Branch
+      # Step 3: Update all submodules to their latest commits
+      - name: Update submodules to latest commit
         run: |
           git submodule update --remote --merge
 
-      - name: Commit and Push Changes
-        env:
-          PERSONAL_ACCESS_TOKEN: ${{ secrets.PAT }}
+      # Step 4: Commit the updated submodules if there are any changes
+      - name: Commit changes if submodules are updated
         run: |
           git add .
-          git commit -m "Update submodule to latest commit"
-          git push https://$PERSONAL_ACCESS_TOKEN@github.com/your-username/balena-project-repo.git HEAD:${{ github.event.client_payload.submodule_branch }}
+          git commit -m "Update all submodules to latest commit" || echo "No changes to commit"
+
+      # Step 5: Push changes back to the repository
+      - name: Push changes to repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use the GITHUB_TOKEN for authentication
+        run: |
+          git push origin HEAD:main  # Replace 'main' with the branch you are working on
